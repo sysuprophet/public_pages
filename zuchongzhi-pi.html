@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+        h1 { color: #333; }
+        .content { background: #f9f9f9; padding: 20px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>祖冲之计算圆周率</h1>
+    <div class="content"><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>祖冲之计算圆周率</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { background: #fff; border-radius: 16px; padding: 40px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        h1 { color: #333; text-align: center; font-size: 2em; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        .canvas-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin: 30px 0; }
+        canvas { border: 2px solid #667eea; border-radius: 12px; background: #fafafa; }
+        .controls { text-align: center; margin: 20px 0; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; font-size: 16px; border-radius: 25px; cursor: pointer; margin: 5px; transition: transform 0.2s; }
+        button:hover { transform: scale(1.05); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .stats { background: #f8f9ff; border-radius: 12px; padding: 20px; margin: 20px 0; }
+        .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #666; }
+        .stat-value { font-weight: bold; color: #667eea; font-size: 1.2em; }
+        .info-box { background: linear-gradient(135deg, #fff5e6 0%, #ffe6f0 100%); border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .formula { background: #2d3748; color: #68d391; padding: 15px; border-radius: 8px; font-family: monospace; text-align: center; font-size: 1.1em; margin: 15px 0; }
+        .timeline { display: flex; justify-content: space-between; margin: 30px 0; position: relative; }
+        .timeline::before { content: ""; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #ddd; }
+        .timeline-item { text-align: center; position: relative; z-index: 1; }
+        .timeline-dot { width: 30px; height: 30px; border-radius: 50%; background: #667eea; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+        .timeline-item.active .timeline-dot { background: #764ba2; transform: scale(1.2); }
+        .timeline-label { font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔵 祖冲之计算圆周率</h1>
+        <p class="subtitle">割圆术动态演示 · 约公元 480 年</p>
+        <div class="info-box">
+            <h3>📜 历史背景</h3>
+            <p>祖冲之（429-500 年），南北朝时期杰出数学家。他使用<strong>割圆术</strong>，通过计算正 12288 边形的周长，将圆周率精确到小数点后 7 位：</p>
+            <div class="formula">3.1415926 &lt; π &lt; 3.1415927</div>
+            <p>这一记录保持了近<strong>1000 年</strong>！他还给出了两个分数近似：</p>
+            <ul><li><strong>约率</strong>：22/7 ≈ 3.142857</li><li><strong>密率</strong>：355/113 ≈ 3.1415929</li></ul>
+        </div>
+        <div class="canvas-container">
+            <canvas id="circleCanvas" width="300" height="300"></canvas>
+            <canvas id="zoomCanvas" width="300" height="300"></canvas>
+        </div>
+        <div class="controls">
+            <button id="startBtn" onclick="startAnimation()">▶️ 开始演示</button>
+            <button id="resetBtn" onclick="resetAnimation()">🔄 重置</button>
+            <button id="autoBtn" onclick="toggleAuto()">⏭️ 自动播放</button>
+        </div>
+        <div class="stats">
+            <div class="stat-row"><span class="stat-label">多边形边数</span><span class="stat-value" id="sides">6</span></div>
+            <div class="stat-row"><span class="stat-label">π 下界</span><span class="stat-value" id="piLower">3.000000</span></div>
+            <div class="stat-row"><span class="stat-label">π 上界</span><span class="stat-value" id="piUpper">3.464102</span></div>
+            <div class="stat-row"><span class="stat-label">真实 π 值</span><span class="stat-value" id="realPi">3.141592653589793</span></div>
+        </div>
+        <div class="timeline">
+            <div class="timeline-item active" id="step1"><div class="timeline-dot">1</div><div class="timeline-label">正六边形<br>刘徽起点</div></div>
+            <div class="timeline-item" id="step2"><div class="timeline-dot">2</div><div class="timeline-label">正 12 边形<br>第一次割圆</div></div>
+            <div class="timeline-item" id="step3"><div class="timeline-dot">3</div><div class="timeline-label">正 24 边形</div></div>
+            <div class="timeline-item" id="step4"><div class="timeline-dot">4</div><div class="timeline-label">正 48 边形</div></div>
+            <div class="timeline-item" id="step5"><div class="timeline-dot">5</div><div class="timeline-label">正 96 边形<br>刘徽结果</div></div>
+            <div class="timeline-item" id="step6"><div class="timeline-dot">6</div><div class="timeline-label">正 3072 边形<br>祖冲之突破</div></div>
+        </div>
+        <div class="info-box" style="background: linear-gradient(135deg, #e6f3ff 0%, #e6ffe6 100%);">
+            <h3>🧮 割圆术原理</h3>
+            <ol><li>从圆内接正六边形开始</li><li>每次将边数<strong>翻倍</strong>（6→12→24→48→...）</li><li>用勾股定理计算新边长</li><li>多边形越接近圆，周长越接近圆周率</li></ol>
+            <div class="formula">圆周长 ≈ 多边形周长，当边数→∞时，周长→2πr</div>
+        </div>
+    </div>
+    <script>
+        const canvas1 = document.getElementById("circleCanvas"), ctx1 = canvas1.getContext("2d");
+        const canvas2 = document.getElementById("zoomCanvas"), ctx2 = canvas2.getContext("2d");
+        let sides = 6, animationId = null, autoPlay = false, maxSides = 3072, radius = 120, centerX = 150, centerY = 150;
+        function calculatePerimeter(n) {
+            const innerSide = 2 * radius * Math.sin(Math.PI / n);
+            const outerSide = 2 * radius * Math.tan(Math.PI / n);
+            const diameter = 2 * radius;
+            return { inner: n * innerSide / diameter, outer: n * outerSide / diameter };
+        }
+        function drawPolygon(ctx, n, offsetX, offsetY, scale = 1, isZoom = false) {
+            ctx.clearRect(0, 0, 300, 300);
+            ctx.beginPath(); ctx.arc(offsetX, offsetY, radius * scale, 0, 2 * Math.PI);
+            ctx.strokeStyle = "#ddd"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath();
+            for (let i = 0; i <= n; i++) {
+                const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
+                const x = offsetX + radius * scale * Math.cos(angle), y = offsetY + radius * scale * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.closePath(); ctx.strokeStyle = "#667eea"; ctx.lineWidth = isZoom ? 1 : 2; ctx.stroke();
+            ctx.fillStyle = "rgba(102, 126, 234, 0.1)"; ctx.fill();
+            ctx.beginPath();
+            for (let i = 0; i <= n; i++) {
+                const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
+                const outerRadius = radius / Math.cos(Math.PI / n);
+                const x = offsetX + outerRadius * scale * Math.cos(angle), y = offsetY + outerRadius * scale * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.closePath(); ctx.strokeStyle = "#764ba2"; ctx.lineWidth = isZoom ? 1 : 2; ctx.stroke();
+            for (let i = 0; i < n; i++) {
+                const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
+                const x = offsetX + radius * scale * Math.cos(angle), y = offsetY + radius * scale * Math.sin(angle);
+                ctx.beginPath(); ctx.arc(x, y, isZoom ? 2 : 4, 0, 2 * Math.PI); ctx.fillStyle = "#667eea"; ctx.fill();
+            }
+        }
+        function updateDisplay() {
+            const perim = calculatePerimeter(sides);
+            document.getElementById("sides").textContent = sides;
+            document.getElementById("piLower").textContent = perim.inner.toFixed(6);
+            document.getElementById("piUpper").textContent = perim.outer.toFixed(6);
+            for (let i = 1; i <= 6; i++) document.getElementById("step" + i).classList.remove("active");
+            if (sides <= 6) document.getElementById("step1").classList.add("active");
+            else if (sides <= 12) document.getElementById("step2").classList.add("active");
+            else if (sides <= 24) document.getElementById("step3").classList.add("active");
+            else if (sides <= 48) document.getElementById("step4").classList.add("active");
+            else if (sides <= 96) document.getElementById("step5").classList.add("active");
+            else document.getElementById("step6").classList.add("active");
+        }
+        function nextStep() {
+            if (sides >= maxSides) { autoPlay = false; document.getElementById("autoBtn").textContent = "⏭️ 自动播放"; return; }
+            sides *= 2;
+            drawPolygon(ctx1, sides, centerX, centerY);
+            drawPolygon(ctx2, sides, 150, 150, 3, true);
+            updateDisplay();
+        }
+        function startAnimation() { if (sides >= maxSides) resetAnimation(); else nextStep(); }
+        function resetAnimation() {
+            sides = 6;
+            drawPolygon(ctx1, sides, centerX, centerY);
+            drawPolygon(ctx2, sides, 150, 150, 3, true);
+            updateDisplay();
+            autoPlay = false;
+            document.getElementById("autoBtn").textContent = "⏭️ 自动播放";
+            if (animationId) clearInterval(animationId);
+        }
+        function toggleAuto() {
+            autoPlay = !autoPlay;
+            if (autoPlay) {
+                document.getElementById("autoBtn").textContent = "⏸️ 暂停";
+                animationId = setInterval(() => { if (sides >= maxSides) toggleAuto(); else nextStep(); }, 800);
+            } else {
+                document.getElementById("autoBtn").textContent = "⏭️ 自动播放";
+                if (animationId) clearInterval(animationId);
+            }
+        }
+        resetAnimation();
+    </script>
+</body>
+</html></div>
+</body>
+</html>
