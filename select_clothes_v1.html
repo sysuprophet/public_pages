@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择服装</title>
+    <style>
+        :root {
+            --primary-color: #007AFF;
+            --bg-color: #f5f5f7;
+            --card-bg: #e8e8e8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            transition: filter 0.3s;
+        }
+
+        /* 顶部标题 */
+        header {
+            width: 100%;
+            padding: 15px 0;
+            background: white;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px 15px 100px 15px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .item {
+            position: relative;
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            aspect-ratio: 3 / 4; 
+            border: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .item img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 确保头部显示完整 */
+            display: block;
+        }
+
+        .item.selected {
+            border-color: var(--primary-color);
+            background: #fff;
+        }
+
+        .item.selected::after {
+            content: "✓";
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--primary-color);
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* 底部确认区域 */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 0;
+            text-align: center;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .btn-confirm {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 80px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.3s;
+        }
+
+        /* --- 锁定状态的样式 --- */
+        #lockOverlay {
+            display: none; /* 初始隐藏 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999; /* 置于最顶层 */
+            color: white;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .lock-content {
+            padding: 20px;
+        }
+
+        .lock-content h1 { font-size: 24px; margin-bottom: 10px; }
+        .lock-content p { font-size: 16px; opacity: 0.8; }
+        .success-icon {
+            font-size: 60px;
+            color: #4CD964;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body id="pageBody">
+
+    <header><h2>选择您的服装</h2></header>
+
+    <div class="container">
+        <div class="grid" id="imageGrid"></div>
+    </div>
+
+    <div class="footer" id="footerBar">
+        <button class="btn-confirm" id="confirmBtn" onclick="handleConfirm()">确定选择</button>
+    </div>
+
+    <!-- 锁定遮罩层 -->
+    <div id="lockOverlay">
+        <div class="lock-content">
+            <div class="success-icon">✓</div>
+            <h1>选择成功</h1>
+            <p>已记录您的选择，现在可以关闭此网页。</p>
+        </div>
+    </div>
+
+    <script>
+        // ============ 配置 ============
+        const CALLBACK_URL = 'http://47.112.206.6:18790/api/v1/change_clothes/selection';
+
+        // 从 URL 参数获取用户和任务信息
+        // 格式：select_clothes.html?userId=xxx@im.wechat&taskId=tryon_xxx
+        const urlParams = new URLSearchParams(window.location.search);
+        const USER_ID = urlParams.get('userId') || '';
+
+        const baseUrl = "https://avatar-video.oss-cn-shenzhen.aliyuncs.com/ref_images/";
+        const models = [
+            "xinchun_image_1.jpg", "xinchun_image_2.jpg", "xinchun_image_3.jpg",
+            "xinchun_image_4.jpg", "xinchun_image_5.jpg", "xinchun_image_6.jpg",
+            "xinchun_image_7.jpg", "xinchun_image_8.jpg", "xinchun_image_9.jpg",
+            "xizhuang_image_1.jpg", "xizhuang_image_2.jpg", "xizhuang_image_3.jpg",
+            "xizhuang_image_4.jpg", "xizhuang_image_5.jpg", "xizhuang_image_6.jpg",
+            "xizhuang_image_7.jpg", "xizhuang_image_8.jpg", "xizhuang_image_9.jpg",
+            "xizhuang_image_10.jpg", "xizhuang_image_11.jpg", "dayi_image_1.jpg",
+            "dayi_image_2.jpg", "dayi_image_3.jpg", "dayi_image_4.jpg",
+            "dayi_image_5.jpg", "dayi_image_6.jpg", "lianyiqun_image_1.jpg",
+            "lianyiqun_image_2.jpg", "lianyiqun_image_3.jpg", "lianyiqun_image_4.jpg",
+            "lianyiqun_image_5.jpg", "lianyiqun_image_6.jpg"
+        ];
+
+        let selectedImageUrl = null;
+        let selectedClothesName = null;
+        const grid = document.getElementById('imageGrid');
+
+        // 生成图片列表
+        models.forEach(name => {
+            const fullUrl = baseUrl + name;
+            const item = document.createElement('div');
+            item.className = 'item';
+            
+            const img = document.createElement('img');
+            img.src = fullUrl;
+            img.loading = "lazy";
+
+            item.appendChild(img);
+            item.onclick = () => {
+                // 如果已经锁定，点击无效
+                if (document.getElementById('lockOverlay').style.display === 'flex') return;
+
+                document.querySelectorAll('.item').forEach(el => el.classList.remove('selected'));
+                item.classList.add('selected');
+                selectedImageUrl = fullUrl;
+                selectedClothesName = name;
+            };
+            grid.appendChild(item);
+        });
+
+        // 确定按钮逻辑
+        async function handleConfirm() {
+            if (!selectedImageUrl) {
+                alert("请先选择服装");
+                return;
+            }
+
+            // 1. 显示锁定遮罩层
+            const overlay = document.getElementById('lockOverlay');
+            overlay.style.display = 'flex';
+
+            // 2. 禁止页面滚动
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+
+            // 3. 移除底部按钮栏
+            document.getElementById('footerBar').style.display = 'none';
+
+            // 4. 发送到 Flask 回调服务
+            try {
+                console.log("提交选择到回调服务:", {
+                    userId: USER_ID,
+                    clothesId: selectedClothesName,
+                    clothesUrl: selectedImageUrl
+                });
+
+                const response = await fetch(CALLBACK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: USER_ID,
+                        clothesId: selectedClothesName,
+                        clothesUrl: selectedImageUrl,
+                        timestamp: Date.now()
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log("回调服务已收到:", result);
+                
+                if (result.success) {
+                    // 更新遮罩层提示文字
+                    overlay.innerHTML = `
+                        <div class="lock-content">
+                            <div class="success-icon">✓</div>
+                            <h1>选择成功</h1>
+                            <p>已记录您的选择，AI 正在为您换装...</p>
+                            <p style="margin-top:10px;font-size:14px;opacity:0.6">现在可以关闭此网页，结果将发送到微信</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.message || '提交失败');
+                }
+                
+            } catch (err) {
+                console.error('提交失败:', err);
+                
+                // 显示错误提示
+                overlay.innerHTML = `
+                    <div class="lock-content">
+                        <div class="success-icon" style="color:#ff4444">✗</div>
+                        <h1>提交失败</h1>
+                        <p>${err.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
+</body>
+</html>
