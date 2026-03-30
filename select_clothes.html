@@ -250,7 +250,6 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${AUTH_TOKEN}`
                     },
                     body: JSON.stringify({
                         userId: USER_ID,
@@ -291,7 +290,6 @@
                         <div class="success-icon" style="color:#ff4444">✗</div>
                         <h1>提交失败</h1>
                         <p>${err.message}</p>
-                        <p style="margin-top:10px;font-size:14px;opacity:0.6">请截图联系助手</p>
                     </div>
                 `;
             }
